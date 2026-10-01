@@ -1,1 +1,390 @@
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ニベルアリーナ サイズカウンター</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1e1e24;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #22c55e;
+            --text-color: #ffffff;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        /* 最大サイズ表示 */
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #333;
+            transition: all 0.3s ease;
+        }
+        /* 被ダメージ10で敗北 */
+        .result-box.defeat {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.55);
+            animation: defeat-pulse 1s infinite;
+        }
+        @keyframes defeat-pulse {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(239, 68, 68, 0.8);
+            }
+        }
+        .result-label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+        .result-value {
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-color);
+        }
+        .result-box.defeat .result-value {
+            color: var(--accent-red);
+        }
+        .defeat-message {
+            display: none;
+            margin-top: 12px;
+            color: var(--accent-red);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .result-box.defeat .defeat-message {
+            display: block;
+            animation: defeat-text 0.5s ease;
+        }
+        @keyframes defeat-text {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        /* カウンター */
+        .counter-group {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .counter-info {
+            text-align: left;
+        }
+        .counter-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .counter-current {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 2px;
+        }
+        .btn-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:active {
+            transform: scale(0.92);
+        }
+        .btn-minus {
+            background-color: #4b5563;
+        }
+        .btn-blue {
+            background-color: var(--accent-blue);
+        }
+        .btn-red {
+            background-color: var(--accent-red);
+        }
+        .btn-green {
+            background-color: var(--accent-green);
+        }
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        /* 現在使用サイズ */
+        .used-size-box {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 18px;
+        }
+        .used-size-title {
+            color: var(--accent-green);
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .used-size-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .used-size-note {
+            color: #888;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        .reset-txt {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #666;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>NivelArena SIZE COUNTER</h1>
+    <!-- 現在の最大サイズ -->
+    <div class="result-box" id="resultBox">
+        <div class="result-label">
+            現在の最大サイズ（上限20）
+        </div>
+        <div class="result-value" id="totalSize">
+            2
+        </div>
+        <div class="defeat-message">
+            💀 敗北！被ダメージが10に到達しました
+        </div>
+    </div>
+    <!-- リーダーレベル -->
+    <div class="counter-group">
+        <div class="counter-info">
+            <div class="counter-title" style="color: var(--accent-blue);">
+                リーダーレベル
+            </div>
+            <div class="counter-current">
+                現在: <span id="lblLevel">2</span>
+            </div>
+        </div>
+        <div class="btn-controls">
+            <button
+                class="btn btn-minus"
+                onclick="changeValue('level', -1)"
+                id="btnLevelMinus"
+            >—</button>
+            <button
+                class="btn btn-blue"
+                onclick="changeValue('level', 1)"
+                id="btnLevelPlus"
+            >＋</button>
+        </div>
+    </div>
+    <!-- 被ダメージ -->
+    <div class="counter-group">
+        <div class="counter-info">
+            <div class="counter-title" style="color: var(--accent-red);">
+                被ダメージ
+            </div>
+            <div class="counter-current">
+                現在: <span id="lblDamage">0</span>
+            </div>
+        </div>
+        <div class="btn-controls">
+            <button
+                class="btn btn-minus"
+                onclick="changeValue('damage', -1)"
+                id="btnDamageMinus"
+            >—</button>
+            <button
+                class="btn btn-red"
+                onclick="changeValue('damage', 1)"
+                id="btnDamagePlus"
+            >＋</button>
+        </div>
+    </div>
+    <!-- 現在使用サイズ -->
+    <div class="used-size-box">
+        <div class="used-size-title">
+            現在使用サイズ
+        </div>
+        <div class="used-size-value" id="usedSize">
+            0
+        </div>
+        <div class="used-size-note">
+            実際に使用しているサイズを記録
+        </div>
+        <div class="btn-controls" style="justify-content: center; margin-top: 12px;">
+            <button
+                class="btn btn-minus"
+                onclick="changeValue('used', -1)"
+                id="btnUsedMinus"
+            >—</button>
+            <button
+                class="btn btn-green"
+                onclick="changeValue('used', 1)"
+                id="btnUsedPlus"
+            >＋</button>
+        </div>
+    </div>
+    <!-- リセット -->
+    <div
+        class="reset-txt"
+        onclick="resetCounter()"
+    >
+        データをリセット
+    </div>
+</div>
+<script>
+    // 初期状態
+    let state = {
+        level: 2,
+        damage: 0,
+        used: 0
+    };
+    function updateDisplay() {
+        // 最大サイズ
+        let total = state.level + state.damage;
+        // 最大20
+        if (total > 20) {
+            total = 20;
+        }
+        // 表示更新
+        document.getElementById('lblLevel').innerText =
+            state.level;
+        document.getElementById('lblDamage').innerText =
+            state.damage;
+        document.getElementById('totalSize').innerText =
+            total;
+        document.getElementById('usedSize').innerText =
+            state.used;
+        // リーダーレベル：2〜10
+        document.getElementById('btnLevelMinus').disabled =
+            (state.level <= 2);
+        document.getElementById('btnLevelPlus').disabled =
+            (state.level >= 10);
+        // 被ダメージ：0〜10
+        document.getElementById('btnDamageMinus').disabled =
+            (state.damage <= 0);
+        document.getElementById('btnDamagePlus').disabled =
+            (state.damage >= 10);
+        // 現在使用サイズ：0〜20
+        document.getElementById('btnUsedMinus').disabled =
+            (state.used <= 0);
+        document.getElementById('btnUsedPlus').disabled =
+            (state.used >= 20);
+        // 被ダメージ10で敗北
+        const resultBox =
+            document.getElementById('resultBox');
+        if (state.damage >= 10) {
+            resultBox.classList.add('defeat');
+        } else {
+            resultBox.classList.remove('defeat');
+        }
+    }
+    function changeValue(type, amount) {
+        // リーダーレベル
+        if (type === 'level') {
+            state.level += amount;
+            if (state.level < 2) {
+                state.level = 2;
+            }
+            if (state.level > 10) {
+                state.level = 10;
+            }
+        }
+        // 被ダメージ
+        else if (type === 'damage') {
+            state.damage += amount;
+            if (state.damage < 0) {
+                state.damage = 0;
+            }
+            if (state.damage > 10) {
+                state.damage = 10;
+            }
+        }
+        // 現在使用サイズ
+        else if (type === 'used') {
+            state.used += amount;
+            if (state.used < 0) {
+                state.used = 0;
+            }
+            if (state.used > 20) {
+                state.used = 20;
+            }
+        }
+        updateDisplay();
+    }
+    function resetCounter() {
+        if (
+            confirm(
+                'カウンターを初期状態（Lv2 / ダメージ0 / 使用サイズ0）に戻しますか？'
+            )
+        ) {
+            state.level = 2;
+            state.damage = 0;
+            state.used = 0;
+            updateDisplay();
+        }
+    }
+    // 起動時
+    updateDisplay();
+</script>
+</body>
+</html>
